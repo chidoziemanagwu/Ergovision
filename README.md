@@ -25,7 +25,7 @@ To install Ergovision, follow these steps:
 ```plaintext
 MIT License
 
-Copyright (c) [Year] [Chidozie Managwu and Muhammad Sharjeel Ahmad Anjum]
+Copyright (c) [2024] [Chidozie Managwu and Muhammad Sharjeel Ahmad Anjum]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
