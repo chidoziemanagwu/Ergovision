@@ -1,15 +1,33 @@
+"""
+This module analyzes ergonomics in a video using OpenCV and MediaPipe.
+"""
+
 import cv2
 import mediapipe as mp
 import numpy as np
 
 class ErgonomicsAnalyzer:
+    """
+    This class is responsible for analyzing ergonomics in a video.
+    """
+
     def __init__(self):
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose()
         self.mp_drawing = mp.solutions.drawing_utils
 
     def calculate_angle(self, a, b, c):
-        """Calculate angle between three points in 3D space."""
+        """
+        Calculate angle between three points in 3D space.
+
+        Args:
+            a (tuple): First point coordinates (x, y, z).
+            b (tuple): Second point coordinates (x, y, z).
+            c (tuple): Third point coordinates (x, y, z).
+
+        Returns:
+            float: Angle in degrees.
+        """
         vector1 = np.array([a[0] - b[0], a[1] - b[1], a[2] - b[2]])
         vector2 = np.array([c[0] - b[0], c[1] - b[1], c[2] - b[2]])
         cosine_angle = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
@@ -17,6 +35,12 @@ class ErgonomicsAnalyzer:
         return np.degrees(angle)
 
     def process_video(self, video_path):
+        """
+        Process the video to analyze ergonomics.
+
+        Args:
+            video_path (str): Path to the video file.
+        """
         cap = cv2.VideoCapture(video_path)
         while cap.isOpened():
             ret, frame = cap.read()
@@ -54,6 +78,6 @@ class ErgonomicsAnalyzer:
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    video_path = 'sample_video.mp4'
+    video_path = 'mov 3.mov'
     analyzer = ErgonomicsAnalyzer()
     analyzer.process_video(video_path)

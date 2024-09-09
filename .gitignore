@@ -1,0 +1,41 @@
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Ignore virtual environment folders
+venv/
+env/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+
+# Ignore any kind of video files
+*.mov
+*.mp4
+*.avi
+*.mkv
+
+# Ignore other media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Ignore IDE files (VSCode, PyCharm, etc.)
+.vscode/
+.idea/
+
+# Ignore build-related files
+*.egg-info/
+dist/
+build/
+
+# Ignore files in the GitHub workflow directory if not needed
+.github/workflows/*.yml
