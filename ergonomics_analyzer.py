@@ -46,38 +46,38 @@ class ErgonomicsAnalyzer:
             ret, frame = cap.read()
             if not ret:
                 break
-            
+
             # Convert the frame to RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
+
             # Process the frame to get pose landmarks
             results = self.pose.process(rgb_frame)
-            
+
             if results.pose_landmarks:
                 # Draw landmarks on the frame
                 self.mp_drawing.draw_landmarks(frame, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
-                
+
                 # Extract landmarks for further analysis
                 landmarks = results.pose_landmarks.landmark
                 landmarks_np = np.array([(lmk.x, lmk.y, lmk.z) for lmk in landmarks])
-                
+
                 # Example: Calculate angle between shoulder, elbow, and wrist
                 shoulder = landmarks_np[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
                 elbow = landmarks_np[self.mp_pose.PoseLandmark.LEFT_ELBOW.value]
                 wrist = landmarks_np[self.mp_pose.PoseLandmark.LEFT_WRIST.value]
                 angle = self.calculate_angle(shoulder, elbow, wrist)
-                print(f"Angle between shoulder, elbow, and wrist: {angle} degrees")
-            
+                print(f"Angle between shoulder, elbow, and wrist: {angle:.2f} degrees")
+
             # Display the frame
             cv2.imshow('Pose Estimation', frame)
-            
+
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 break
-        
+
         cap.release()
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    video_path = 'mov 3.mov'
+    VIDEO_PATH = 'mov 3.mov'  # Use uppercase for constants
     analyzer = ErgonomicsAnalyzer()
-    analyzer.process_video(video_path)
+    analyzer.process_video(VIDEO_PATH)
