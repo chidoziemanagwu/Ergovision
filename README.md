@@ -9,6 +9,14 @@ Ergovision is a computer vision project aimed at monitoring and analyzing ergono
 - Movement tracking
 - Workspace setup analysis
 
+## Results
+![image](https://github.com/user-attachments/assets/d7348c5d-3351-4d24-950c-1dd525b172c3)
+![image](https://github.com/user-attachments/assets/9b03334f-20ff-45de-a74e-501bca5686b4)
+![image](https://github.com/user-attachments/assets/a4e60501-e133-4fe2-8f88-d943a606fcb9)
+![image](https://github.com/user-attachments/assets/29a58c18-dd9d-4402-a4c4-2157635492ff)
+![image](https://github.com/user-attachments/assets/3470fcbb-e4b4-474d-81e7-e809031b2885)
+
+
 ## Installation
 
 To install Ergovision, follow these steps:
