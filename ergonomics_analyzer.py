@@ -1,20 +1,13 @@
-"""
-This module analyzes ergonomics in a video using OpenCV and MediaPipe.
-"""
-
-import cv2
-import mediapipe as mp
-import numpy as np
-
 class ErgonomicsAnalyzer:
     """
-    This class is responsible for analyzing ergonomics in a video.
+    This class is responsible for analyzing ergonomics in a video and calculating REBA scores.
     """
 
     def __init__(self):
         self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.Pose()
+        self.pose = self.mp_pose.PPose()
         self.mp_drawing = mp.solutions.drawing_utils
+        self.cycle_count = 0
 
     def calculate_angle(self, a, b, c):
         """
@@ -34,9 +27,34 @@ class ErgonomicsAnalyzer:
         angle = np.arccos(cosine_angle)
         return np.degrees(angle)
 
+    def calculate_reba_score(self, angles):
+        """
+        Calculate REBA score based on joint angles and posture analysis.
+        Args:
+            angles (dict): Dictionary of joint angles such as neck, trunk, legs, arms.
+        
+        Returns:
+            int: REBA score.
+        """
+        # Example of a simplified REBA scoring system
+        trunk_angle = angles.get("trunk", 0)
+        neck_angle = angles.get("neck", 0)
+        leg_angle = angles.get("legs", 0)
+
+        # Basic REBA scoring logic based on posture angles (adjust based on actual REBA)
+        trunk_score = 2 if trunk_angle > 60 else 1
+        neck_score = 2 if neck_angle > 20 else 1
+        leg_score = 2 if leg_angle > 30 else 1
+
+        # Simplified combination to calculate total REBA score
+        reba_score = trunk_score + neck_score + leg_score
+        
+        # Adjust the score further based on handling loads or repeated movements, etc.
+        return reba_score
+
     def process_video(self, video_path):
         """
-        Process the video to analyze ergonomics.
+        Process the video to analyze ergonomics and calculate REBA score.
 
         Args:
             video_path (str): Path to the video file.
@@ -61,12 +79,32 @@ class ErgonomicsAnalyzer:
                 landmarks = results.pose_landmarks.landmark
                 landmarks_np = np.array([(lmk.x, lmk.y, lmk.z) for lmk in landmarks])
 
-                # Example: Calculate angle between shoulder, elbow, and wrist
+                # Calculate key angles for REBA score (neck, trunk, arms, legs)
                 shoulder = landmarks_np[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
                 elbow = landmarks_np[self.mp_pose.PoseLandmark.LEFT_ELBOW.value]
                 wrist = landmarks_np[self.mp_pose.PoseLandmark.LEFT_WRIST.value]
-                angle = self.calculate_angle(shoulder, elbow, wrist)
-                print(f"Angle between shoulder, elbow, and wrist: {angle:.2f} degrees")
+                hip = landmarks_np[self.mp_pose.PoseLandmark.LEFT_HIP.value]
+                knee = landmarks_np[self.mp_pose.PoseLandmark.LEFT_KNEE.value]
+                ankle = landmarks_np[self.mp_pose.PoseLandmark.LEFT_ANKLE.value]
+
+                # Example: Calculate angles for REBA
+                neck_angle = self.calculate_angle(shoulder, neck, trunk)
+                trunk_angle = self.calculate_angle(hip, trunk, shoulder)
+                leg_angle = self.calculate_angle(hip, knee, ankle)
+
+                # Store the angles
+                angles = {
+                    "neck": neck_angle,
+                    "trunk": trunk_angle,
+                    "legs": leg_angle
+                }
+
+                # Check every 10th frame (cycle)
+                if self.cycle_count % 10 == 0:
+                    reba_score = self.calculate_reba_score(angles)
+                    print(f"Cycle {self.cycle_count}: REBA Score = {reba_score}")
+                
+                self.cycle_count += 1
 
             # Display the frame
             cv2.imshow('Pose Estimation', frame)
@@ -76,8 +114,3 @@ class ErgonomicsAnalyzer:
 
         cap.release()
         cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    VIDEO_PATH = 'mov 3.mov'  # Use uppercase for constants
-    analyzer = ErgonomicsAnalyzer()
-    analyzer.process_video(VIDEO_PATH)
