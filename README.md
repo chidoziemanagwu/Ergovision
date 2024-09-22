@@ -16,6 +16,12 @@ Ergovision is a computer vision project aimed at monitoring and analyzing ergono
 ![image](https://github.com/user-attachments/assets/29a58c18-dd9d-4402-a4c4-2157635492ff)
 ![image](https://github.com/user-attachments/assets/3470fcbb-e4b4-474d-81e7-e809031b2885)
 
+## Key Features
+
+- REBA Calculation: The calculate_reba_score method now computes a simplified REBA score based on angles.
+- Cycle Check: Every 10th frame, the current posture is evaluated, and the REBA score is printed.
+- Ergonomic Analysis: We expanded the posture analysis to calculate angles for the neck, trunk, and legs to evaluate the       
+  ergonomics based on these body parts.
 
 ## Installation
 
