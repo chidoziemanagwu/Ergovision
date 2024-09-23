@@ -1,3 +1,8 @@
+import cv2
+import numpy as np
+import mediapipe as mp
+
+
 class ErgonomicsAnalyzer:
     """
     This class is responsible for analyzing ergonomics in a video and calculating REBA scores.
@@ -5,7 +10,7 @@ class ErgonomicsAnalyzer:
 
     def __init__(self):
         self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.PPose()
+        self.pose = self.mp_pose.Pose()  # Corrected Pose initialization
         self.mp_drawing = mp.solutions.drawing_utils
         self.cycle_count = 0
 
@@ -30,13 +35,13 @@ class ErgonomicsAnalyzer:
     def calculate_reba_score(self, angles):
         """
         Calculate REBA score based on joint angles and posture analysis.
+
         Args:
             angles (dict): Dictionary of joint angles such as neck, trunk, legs, arms.
-        
+
         Returns:
             int: REBA score.
         """
-        # Example of a simplified REBA scoring system
         trunk_angle = angles.get("trunk", 0)
         neck_angle = angles.get("neck", 0)
         leg_angle = angles.get("legs", 0)
@@ -48,7 +53,7 @@ class ErgonomicsAnalyzer:
 
         # Simplified combination to calculate total REBA score
         reba_score = trunk_score + neck_score + leg_score
-        
+
         # Adjust the score further based on handling loads or repeated movements, etc.
         return reba_score
 
@@ -79,17 +84,24 @@ class ErgonomicsAnalyzer:
                 landmarks = results.pose_landmarks.landmark
                 landmarks_np = np.array([(lmk.x, lmk.y, lmk.z) for lmk in landmarks])
 
-                # Calculate key angles for REBA score (neck, trunk, arms, legs)
-                shoulder = landmarks_np[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
-                elbow = landmarks_np[self.mp_pose.PoseLandmark.LEFT_ELBOW.value]
-                wrist = landmarks_np[self.mp_pose.PoseLandmark.LEFT_WRIST.value]
-                hip = landmarks_np[self.mp_pose.PoseLandmark.LEFT_HIP.value]
+                # Define the neck as the midpoint between the left and right shoulders
+                left_shoulder = landmarks_np[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
+                right_shoulder = landmarks_np[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
+                neck = np.mean([left_shoulder, right_shoulder], axis=0)
+
+                # Define the trunk as the midpoint between the left and right hips
+                left_hip = landmarks_np[self.mp_pose.PoseLandmark.LEFT_HIP.value]
+                right_hip = landmarks_np[self.mp_pose.PoseLandmark.RIGHT_HIP.value]
+                trunk = np.mean([left_hip, right_hip], axis=0)
+
+                # Other landmarks for angles
+                hip = left_hip
                 knee = landmarks_np[self.mp_pose.PoseLandmark.LEFT_KNEE.value]
                 ankle = landmarks_np[self.mp_pose.PoseLandmark.LEFT_ANKLE.value]
 
                 # Example: Calculate angles for REBA
-                neck_angle = self.calculate_angle(shoulder, neck, trunk)
-                trunk_angle = self.calculate_angle(hip, trunk, shoulder)
+                neck_angle = self.calculate_angle(left_shoulder, neck, trunk)
+                trunk_angle = self.calculate_angle(hip, trunk, left_shoulder)
                 leg_angle = self.calculate_angle(hip, knee, ankle)
 
                 # Store the angles
@@ -114,3 +126,7 @@ class ErgonomicsAnalyzer:
 
         cap.release()
         cv2.destroyAllWindows()
+
+# Example usage:
+# analyzer = ErgonomicsAnalyzer()
+# analyzer.process_video("path_to_your_video.mp4")
