@@ -111,13 +111,17 @@ class ErgonomicsAnalyzer:
                     "legs": leg_angle
                 }
 
+                # Check for poor posture (trunk angle too high)
+                if trunk_angle > 60:  # Threshold for poor posture
+                    cv2.putText(frame, 'Poor Posture Detected!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                                1, (0, 0, 255), 2, cv2.LINE_AA)
+
                 # Check every 10th frame (cycle)
                 if self.cycle_count % 10 == 0:
                     reba_score = self.calculate_reba_score(angles)
                     print(f"Cycle {self.cycle_count}: REBA Score = {reba_score}")
-                
-                self.cycle_count += 1
 
+                self.cycle_count += 1
             # Display the frame
             cv2.imshow('Pose Estimation', frame)
 
@@ -128,5 +132,5 @@ class ErgonomicsAnalyzer:
         cv2.destroyAllWindows()
 
 # Example usage:
-# analyzer = ErgonomicsAnalyzer()
-# analyzer.process_video("path_to_your_video.mp4")
+analyzer = ErgonomicsAnalyzer()
+analyzer.process_video("videoplayback.mp4")
