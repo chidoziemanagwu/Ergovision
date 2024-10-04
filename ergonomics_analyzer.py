@@ -13,6 +13,7 @@ class ErgonomicsAnalyzer:
         self.pose = self.mp_pose.Pose()  # Corrected Pose initialization
         self.mp_drawing = mp.solutions.drawing_utils
         self.cycle_count = 0
+        self.prev_angles = {"neck": 0, "trunk": 0, "legs": 0}  # Track previous angles for comparison
 
     def calculate_angle(self, a, b, c):
         """
@@ -56,6 +57,18 @@ class ErgonomicsAnalyzer:
 
         # Adjust the score further based on handling loads or repeated movements, etc.
         return reba_score
+
+    def log_posture_changes(self, current_angles):
+        """
+        Log posture changes if significant deviation is detected.
+
+        Args:
+            current_angles (dict): Current posture angles (neck, trunk, legs).
+        """
+        for joint in current_angles:
+            angle_change = abs(current_angles[joint] - self.prev_angles[joint])
+            if angle_change > 10:  # Log if there's a change greater than 10 degrees
+                print(f"Significant {joint} posture change detected: {angle_change:.2f} degrees")
 
     def process_video(self, video_path):
         """
@@ -104,24 +117,31 @@ class ErgonomicsAnalyzer:
                 trunk_angle = self.calculate_angle(hip, trunk, left_shoulder)
                 leg_angle = self.calculate_angle(hip, knee, ankle)
 
-                # Store the angles
-                angles = {
+                # Store the current angles
+                current_angles = {
                     "neck": neck_angle,
                     "trunk": trunk_angle,
                     "legs": leg_angle
                 }
 
+                # Log significant posture changes
+                self.log_posture_changes(current_angles)
+
+                # Update previous angles for the next frame
+                self.prev_angles = current_angles
+
                 # Check for poor posture (trunk angle too high)
                 if trunk_angle > 60:  # Threshold for poor posture
-                    cv2.putText(frame, 'Poor Posture Detected!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                    cv2.putText(frame, 'Poor Posture Detected!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
                                 1, (0, 0, 255), 2, cv2.LINE_AA)
 
                 # Check every 10th frame (cycle)
                 if self.cycle_count % 10 == 0:
-                    reba_score = self.calculate_reba_score(angles)
+                    reba_score = self.calculate_reba_score(current_angles)
                     print(f"Cycle {self.cycle_count}: REBA Score = {reba_score}")
 
                 self.cycle_count += 1
+
             # Display the frame
             cv2.imshow('Pose Estimation', frame)
 
