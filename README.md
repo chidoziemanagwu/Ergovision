@@ -1,6 +1,6 @@
 # Ergovision
 
-Ergovision is a computer vision project aimed at monitoring and analyzing ergonomic aspects of human work environments. It uses advanced algorithms to detect posture, movements, and workspace setup to provide feedback and recommendations for improving workplace ergonomics.
+Ergovision is a computer vision project aimed at monitoring and analyzing ergonomic aspects of human work environments. It uses advanced algorithms to detect posture, movements, and workspace setup to provide feedback and recommendations for improving workplace ergonomics. Built in conjuction with the Safety Innovation Integration Research Lab (SIIR-Lab) at Texas A&M College
 
 ## Features
 
@@ -53,3 +53,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+![image](https://github.com/user-attachments/assets/2c60cfbf-8bf7-4d23-ab0c-d6561047e071)
