@@ -307,9 +307,9 @@ def generate_html_report(analyzers, output_file="reba_report.html"):
 if __name__ == "__main__":
     # Define the three video paths
     video_paths = [
-        ("videoplayback (1).mp4", "Cycle 10"),
-        ("videoplayback.mp4", "Cycle 20"),
-        ("mov 3.mov", "Cycle 30")
+        # ("VID1.mp4", "Cycle 10"),
+        ("VID2.mp4", "Cycle 20"),
+        ("VID3.mp4", "Cycle 30")
     ]
 
     # Create ErgonomicsAnalyzer instances for each video

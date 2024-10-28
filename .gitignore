@@ -31,7 +31,7 @@ Thumbs.db
 # Ignore IDE files (VSCode, PyCharm, etc.)
 .vscode/
 .idea/
-
+.history/
 # Ignore build-related files
 *.egg-info/
 dist/
