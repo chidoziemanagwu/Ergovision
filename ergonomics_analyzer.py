@@ -4,6 +4,8 @@ import mediapipe as mp
 import os
 import webbrowser
 
+REBA_CALC_INTERVAL = 30
+
 class ErgonomicsAnalyzer:
     """
     This class is responsible for analyzing ergonomics in a video and calculating REBA scores.
@@ -212,7 +214,7 @@ class ErgonomicsAnalyzer:
                     self.prev_angles = current_angles
 
                     # Calculate REBA score every 30 frames (adjust as needed)
-                    if self.cycle_count % 30 == 0:
+                    if self.cycle_count % REBA_CALC_INTERVAL == 0:
                         reba_score = self.calculate_reba_score(current_angles)
                         category = self.categorize_reba_score(reba_score)
                         print(f"{self.cycle_name}: Cycle {self.cycle_count}: REBA Score = {reba_score} ({category})")
