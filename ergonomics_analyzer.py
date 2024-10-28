@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import os
+import webbrowser
 
 class ErgonomicsAnalyzer:
     """
@@ -19,7 +20,8 @@ class ErgonomicsAnalyzer:
         self.video_path = video_path
         self.cycle_name = cycle_name
         self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.Pose()
+        # Improved pose model initialization
+        self.pose = self.mp_pose.Pose(static_image_mode=False, model_complexity=2, enable_segmentation=False, min_detection_confidence=0.5)
         self.mp_drawing = mp.solutions.drawing_utils
         self.cycle_count = 0
         self.prev_angles = {"neck": 0, "trunk": 0, "legs": 0}
@@ -138,8 +140,7 @@ class ErgonomicsAnalyzer:
         """
         cap = cv2.VideoCapture(self.video_path)
         if not cap.isOpened():
-            print(f"Error: Unable to open video file {self.video_path}")
-            return
+            raise FileNotFoundError(f"Error: Unable to open video file {self.video_path}")
 
         print(f"Processing {self.cycle_name}...")
         while cap.isOpened():
@@ -154,56 +155,74 @@ class ErgonomicsAnalyzer:
             results = self.pose.process(rgb_frame)
 
             if results.pose_landmarks:
-                # Draw landmarks on the frame
-                self.mp_drawing.draw_landmarks(frame, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
+                # Get bounding box around the person
+                image_height, image_width, _ = frame.shape
+                x_coords = [lmk.x * image_width for lmk in results.pose_landmarks.landmark]
+                y_coords = [lmk.y * image_height for lmk in results.pose_landmarks.landmark]
+                x_min, x_max = int(min(x_coords)), int(max(x_coords))
+                y_min, y_max = int(min(y_coords)), int(max(y_coords))
+                # Add padding
+                padding = 20
+                x_min = max(0, x_min - padding)
+                x_max = min(image_width, x_max + padding)
+                y_min = max(0, y_min - padding)
+                y_max = min(image_height, y_max + padding)
+                # Crop the frame to focus on the person
+                cropped_frame = frame[y_min:y_max, x_min:x_max]
+
+                # Draw landmarks on the cropped frame
+                self.mp_drawing.draw_landmarks(cropped_frame, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
 
                 # Extract landmarks for further analysis
                 landmarks = results.pose_landmarks.landmark
                 landmarks_np = np.array([(lmk.x, lmk.y, lmk.z) for lmk in landmarks])
 
-                # Define the neck as the midpoint between the left and right shoulders
-                left_shoulder = landmarks_np[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
-                right_shoulder = landmarks_np[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
-                neck = np.mean([left_shoulder, right_shoulder], axis=0)
+                try:
+                    # Define the neck as the midpoint between the left and right shoulders
+                    left_shoulder = landmarks_np[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
+                    right_shoulder = landmarks_np[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
+                    neck = np.mean([left_shoulder, right_shoulder], axis=0)
 
-                # Define the trunk as the midpoint between the left and right hips
-                left_hip = landmarks_np[self.mp_pose.PoseLandmark.LEFT_HIP.value]
-                right_hip = landmarks_np[self.mp_pose.PoseLandmark.RIGHT_HIP.value]
-                trunk = np.mean([left_hip, right_hip], axis=0)
+                    # Define the trunk as the midpoint between the left and right hips
+                    left_hip = landmarks_np[self.mp_pose.PoseLandmark.LEFT_HIP.value]
+                    right_hip = landmarks_np[self.mp_pose.PoseLandmark.RIGHT_HIP.value]
+                    trunk = np.mean([left_hip, right_hip], axis=0)
 
-                # Other landmarks for angles
-                hip = left_hip
-                knee = landmarks_np[self.mp_pose.PoseLandmark.LEFT_KNEE.value]
-                ankle = landmarks_np[self.mp_pose.PoseLandmark.LEFT_ANKLE.value]
+                    # Other landmarks for angles
+                    hip = left_hip
+                    knee = landmarks_np[self.mp_pose.PoseLandmark.LEFT_KNEE.value]
+                    ankle = landmarks_np[self.mp_pose.PoseLandmark.LEFT_ANKLE.value]
 
-                # Calculate angles for REBA
-                neck_angle = self.calculate_angle(left_shoulder, neck, trunk)
-                trunk_angle = self.calculate_angle(hip, trunk, left_shoulder)
-                leg_angle = self.calculate_angle(hip, knee, ankle)
+                    # Calculate angles for REBA
+                    neck_angle = self.calculate_angle(left_shoulder, neck, trunk)
+                    trunk_angle = self.calculate_angle(hip, trunk, left_shoulder)
+                    leg_angle = self.calculate_angle(hip, knee, ankle)
 
-                # Store the current angles
-                current_angles = {
-                    "neck": neck_angle,
-                    "trunk": trunk_angle,
-                    "legs": leg_angle
-                }
+                    # Store the current angles
+                    current_angles = {
+                        "neck": neck_angle,
+                        "trunk": trunk_angle,
+                        "legs": leg_angle
+                    }
 
-                # Log significant posture changes
-                self.log_posture_changes(current_angles)
+                    # Log significant posture changes
+                    self.log_posture_changes(current_angles)
 
-                # Update previous angles for the next frame
-                self.prev_angles = current_angles
+                    # Update previous angles for the next frame
+                    self.prev_angles = current_angles
 
-                # Calculate REBA score every 30 frames (adjust as needed)
-                if self.cycle_count % 30 == 0:
-                    reba_score = self.calculate_reba_score(current_angles)
-                    category = self.categorize_reba_score(reba_score)
-                    print(f"{self.cycle_name}: Cycle {self.cycle_count}: REBA Score = {reba_score} ({category})")
+                    # Calculate REBA score every 30 frames (adjust as needed)
+                    if self.cycle_count % 30 == 0:
+                        reba_score = self.calculate_reba_score(current_angles)
+                        category = self.categorize_reba_score(reba_score)
+                        print(f"{self.cycle_name}: Cycle {self.cycle_count}: REBA Score = {reba_score} ({category})")
+                except IndexError as e:
+                    print(f"Error: Unable to extract required landmarks: {e}")
 
-            # Display the frame with cycle name
-            cv2.putText(frame, self.cycle_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+            # Display the cropped frame with cycle name
+            cv2.putText(cropped_frame, self.cycle_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                         1, (255, 0, 0), 2, cv2.LINE_AA)
-            cv2.imshow(self.cycle_name, frame)
+            cv2.imshow(self.cycle_name, cropped_frame)
 
             if cv2.waitKey(10) & 0xFF == ord('q'):
                 print(f"{self.cycle_name}: Processing interrupted by user.")
@@ -223,87 +242,7 @@ class ErgonomicsAnalyzer:
         cv2.destroyWindow(self.cycle_name)
 
 
-def process_sequentially(analyzers):
-    """
-    Process each video sequentially.
-
-    Args:
-        analyzers (list): List of ErgonomicsAnalyzer instances.
-    """
-    for analyzer in analyzers:
-        analyzer.process_video()
-        print(f"Finished processing {analyzer.cycle_name}. Final REBA Score: {analyzer.final_reba_score}\n")
-
-
-def generate_html_report(analyzers, output_file="reba_report.html"):
-    """
-    Generate an HTML report of the REBA scores.
-
-    Args:
-        analyzers (list): List of ErgonomicsAnalyzer instances.
-        output_file (str): Filename for the HTML report.
-    """
-    # HTML Header with Bootstrap
-    html_header = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>REBA Assessment Report</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body>
-        <div class="container mt-5">
-            <h1 class="mb-4">REBA Assessment Report</h1>
-            <table class="table table-striped">
-                <thead class="table-dark">
-                    <tr>
-                        <th scope="col">Cycle Name</th>
-                        <th scope="col">Final REBA Score</th>
-                        <th scope="col">Category</th>
-                    </tr>
-                </thead>
-                <tbody>
-    """
-
-    # HTML Footer
-    html_footer = """
-                </tbody>
-            </table>
-        </div>
-    </body>
-    </html>
-    """
-
-    # Generate table rows
-    table_rows = ""
-    for analyzer in analyzers:
-        if analyzer.final_reba_score is not None:
-            category = analyzer.categorize_reba_score(analyzer.final_reba_score)
-            table_rows += f"""
-                    <tr>
-                        <td>{analyzer.cycle_name}</td>
-                        <td>{analyzer.final_reba_score}</td>
-                        <td>{category}</td>
-                    </tr>
-            """
-        else:
-            table_rows += f"""
-                    <tr>
-                        <td>{analyzer.cycle_name}</td>
-                        <td colspan="2">No REBA scores calculated.</td>
-                    </tr>
-            """
-
-    # Combine all parts
-    html_content = html_header + table_rows + html_footer
-
-    # Write to HTML file
-    with open(output_file, "w") as file:
-        file.write(html_content)
-
-    print(f"\nHTML report generated: {os.path.abspath(output_file)}")
-
-
+# Main code remains unchanged
 if __name__ == "__main__":
     # Define the three video paths
     video_paths = [
@@ -316,7 +255,9 @@ if __name__ == "__main__":
     analyzers = [ErgonomicsAnalyzer(path, name) for path, name in video_paths]
 
     # Sequential Processing
-    process_sequentially(analyzers)
+    for analyzer in analyzers:
+        analyzer.process_video()
+        print(f"Finished processing {analyzer.cycle_name}. Final REBA Score: {analyzer.final_reba_score}\n")
 
     # Display all final REBA scores
     print("\nFinal REBA Scores:")
@@ -328,4 +269,74 @@ if __name__ == "__main__":
             print(f"{analyzer.cycle_name}: No REBA scores calculated.")
 
     # Generate HTML Report
+    def generate_html_report(analyzers, output_file="reba_report.html"):
+        """
+        Generate an HTML report of the REBA scores.
+
+        Args:
+            analyzers (list): List of ErgonomicsAnalyzer instances.
+            output_file (str): Filename for the HTML report.
+        """
+        # HTML Header with Bootstrap
+        html_header = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>REBA Assessment Report</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <h1 class="mb-4">REBA Assessment Report</h1>
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Cycle Name</th>
+                            <th scope="col">Final REBA Score</th>
+                            <th scope="col">Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        """
+
+        # HTML Footer
+        html_footer = """
+                    </tbody>
+                </table>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Generate table rows
+        table_rows = ""
+        for analyzer in analyzers:
+            if analyzer.final_reba_score is not None:
+                category = analyzer.categorize_reba_score(analyzer.final_reba_score)
+                table_rows += f"""
+                        <tr>
+                            <td>{analyzer.cycle_name}</td>
+                            <td>{analyzer.final_reba_score}</td>
+                            <td>{category}</td>
+                        </tr>
+                """
+            else:
+                table_rows += f"""
+                        <tr>
+                            <td>{analyzer.cycle_name}</td>
+                            <td colspan="2">No REBA scores calculated.</td>
+                        </tr>
+                """
+
+        # Combine all parts
+        html_content = html_header + table_rows + html_footer
+
+        # Write to HTML file
+        with open(output_file, "w") as file:
+            file.write(html_content)
+
+        print(f"\nHTML report generated: {os.path.abspath(output_file)}")
+        # Open the report in the default web browser
+        webbrowser.open(f"file://{os.path.abspath(output_file)}")
+
     generate_html_report(analyzers)
