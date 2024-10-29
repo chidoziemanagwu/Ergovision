@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import os
-import webbrowser
+import time 
 
 REBA_CALC_INTERVAL = 30
 
@@ -140,6 +140,8 @@ class ErgonomicsAnalyzer:
         """
         Process the video to analyze ergonomics and calculate REBA score.
         """
+        HIGH_REBA_THRESHOLD = 7  # Define what constitutes a high REBA score
+
         cap = cv2.VideoCapture(self.video_path)
         if not cap.isOpened():
             raise FileNotFoundError(f"Error: Unable to open video file {self.video_path}")
@@ -221,8 +223,29 @@ class ErgonomicsAnalyzer:
                 except IndexError as e:
                     print(f"Error: Unable to extract required landmarks: {e}")
 
-            # Display the cropped frame with cycle name
-            cv2.putText(cropped_frame, self.cycle_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                    # Check if the REBA score is high
+                    if reba_score >= HIGH_REBA_THRESHOLD:
+                        # Display warning text in bright red
+                        warning_text = f"High REBA Score Detected: {reba_score} ({category})"
+                        cv2.putText(frame, warning_text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                                    1, (0, 0, 255), 2, cv2.LINE_AA)
+
+                        # Display the frame with the warning
+                        cv2.imshow(self.cycle_name, frame)
+
+                        # Pause for 5 seconds while displaying the warning
+                        start_time = time.time()
+                        while (time.time() - start_time) < 5:
+                            if cv2.waitKey(1) & 0xFF == ord('q'):
+                                print(f"{self.cycle_name}: Processing interrupted by user.")
+                                cap.release()
+                                cv2.destroyWindow(self.cycle_name)
+                                return
+                            # Continue displaying the frame with the warning
+                            cv2.imshow(self.cycle_name, frame)
+
+            # Display the frame with cycle name
+            cv2.putText(frame, self.cycle_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                         1, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.imshow(self.cycle_name, cropped_frame)
 
@@ -242,21 +265,14 @@ class ErgonomicsAnalyzer:
 
         cap.release()
         cv2.destroyWindow(self.cycle_name)
+        
+def process_sequentially(analyzers):
+    """
+    Process each video sequentially.
 
-
-# Main code remains unchanged
-if __name__ == "__main__":
-    # Define the three video paths
-    video_paths = [
-        # ("VID1.mp4", "Cycle 10"),
-        ("VID2.mp4", "Cycle 20"),
-        ("VID3.mp4", "Cycle 30")
-    ]
-
-    # Create ErgonomicsAnalyzer instances for each video
-    analyzers = [ErgonomicsAnalyzer(path, name) for path, name in video_paths]
-
-    # Sequential Processing
+    Args:
+        analyzers (list): List of ErgonomicsAnalyzer instances.
+    """
     for analyzer in analyzers:
         analyzer.process_video()
         print(f"Finished processing {analyzer.cycle_name}. Final REBA Score: {analyzer.final_reba_score}\n")
@@ -337,8 +353,31 @@ if __name__ == "__main__":
         with open(output_file, "w") as file:
             file.write(html_content)
 
-        print(f"\nHTML report generated: {os.path.abspath(output_file)}")
-        # Open the report in the default web browser
-        webbrowser.open(f"file://{os.path.abspath(output_file)}")
+    print(f"\nHTML report generated: {os.path.abspath(output_file)}")
 
+
+if __name__ == "__main__":
+    # Define the three video paths
+    video_paths = [
+        # ("VID1.mp4", "Cycle 10"),
+        ("VID2.mp4", "Cycle 20"),
+        # ("VID3.mp4", "Cycle 30")
+    ]
+
+    # Create ErgonomicsAnalyzer instances for each video
+    analyzers = [ErgonomicsAnalyzer(path, name) for path, name in video_paths]
+
+    # Sequential Processing
+    process_sequentially(analyzers)
+
+    # Display all final REBA scores
+    print("\nFinal REBA Scores:")
+    for analyzer in analyzers:
+        if analyzer.final_reba_score is not None:
+            category = analyzer.categorize_reba_score(analyzer.final_reba_score)
+            print(f"{analyzer.cycle_name}: {analyzer.final_reba_score} ({category})")
+        else:
+            print(f"{analyzer.cycle_name}: No REBA scores calculated.")
+
+    # Generate HTML Report
     generate_html_report(analyzers)

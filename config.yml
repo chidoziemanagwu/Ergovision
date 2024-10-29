@@ -1,0 +1,27 @@
+pose_detection:
+  min_detection_confidence: 0.7
+  min_tracking_confidence: 0.7
+  model_complexity: 1
+  static_image_mode: false
+
+processing:
+  batch_size: 4
+  frame_skip: 2
+  min_frames: 10
+
+analysis:
+  reba:
+    neck_threshold: 20
+    trunk_threshold: 60
+    legs_threshold: 30
+    confidence_threshold: 0.5
+
+output:
+  save_detailed_csv: true
+  save_summary_json: true
+  save_visualizations: true
+  save_html_report: true
+
+logging:
+  level: INFO
+  file: ergonomics_analysis.log
