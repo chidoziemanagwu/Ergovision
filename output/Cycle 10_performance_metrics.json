@@ -1,0 +1,8 @@
+{
+    "average_processing_time": 123.45315624999999,
+    "max_processing_time": 365.878,
+    "min_processing_time": 52.373000000000005,
+    "std_processing_time": 70.79335820722757,
+    "total_frames_processed": 0,
+    "tracking_success_rate": 0
+}

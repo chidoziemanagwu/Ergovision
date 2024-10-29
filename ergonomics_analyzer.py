@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import os
+import time 
 
 class ErgonomicsAnalyzer:
     """
@@ -136,6 +137,8 @@ class ErgonomicsAnalyzer:
         """
         Process the video to analyze ergonomics and calculate REBA score.
         """
+        HIGH_REBA_THRESHOLD = 7  # Define what constitutes a high REBA score
+
         cap = cv2.VideoCapture(self.video_path)
         if not cap.isOpened():
             print(f"Error: Unable to open video file {self.video_path}")
@@ -200,6 +203,27 @@ class ErgonomicsAnalyzer:
                     category = self.categorize_reba_score(reba_score)
                     print(f"{self.cycle_name}: Cycle {self.cycle_count}: REBA Score = {reba_score} ({category})")
 
+                    # Check if the REBA score is high
+                    if reba_score >= HIGH_REBA_THRESHOLD:
+                        # Display warning text in bright red
+                        warning_text = f"High REBA Score Detected: {reba_score} ({category})"
+                        cv2.putText(frame, warning_text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                                    1, (0, 0, 255), 2, cv2.LINE_AA)
+
+                        # Display the frame with the warning
+                        cv2.imshow(self.cycle_name, frame)
+
+                        # Pause for 5 seconds while displaying the warning
+                        start_time = time.time()
+                        while (time.time() - start_time) < 5:
+                            if cv2.waitKey(1) & 0xFF == ord('q'):
+                                print(f"{self.cycle_name}: Processing interrupted by user.")
+                                cap.release()
+                                cv2.destroyWindow(self.cycle_name)
+                                return
+                            # Continue displaying the frame with the warning
+                            cv2.imshow(self.cycle_name, frame)
+
             # Display the frame with cycle name
             cv2.putText(frame, self.cycle_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                         1, (255, 0, 0), 2, cv2.LINE_AA)
@@ -221,8 +245,7 @@ class ErgonomicsAnalyzer:
 
         cap.release()
         cv2.destroyWindow(self.cycle_name)
-
-
+        
 def process_sequentially(analyzers):
     """
     Process each video sequentially.
@@ -309,7 +332,7 @@ if __name__ == "__main__":
     video_paths = [
         # ("VID1.mp4", "Cycle 10"),
         ("VID2.mp4", "Cycle 20"),
-        ("VID3.mp4", "Cycle 30")
+        # ("VID3.mp4", "Cycle 30")
     ]
 
     # Create ErgonomicsAnalyzer instances for each video
